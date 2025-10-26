@@ -9,6 +9,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "modules/ble/ble_tesla.h"
 io_expander ioExpander;
 BruceConfig bruceConfig;
 BruceConfigPins bruceConfigPins;
@@ -48,7 +49,7 @@ TouchPoint touchPoint;
 keyStroke KeyStroke;
 
 TaskHandle_t xHandle;
-void __attribute__((weak)) taskInputHandler(void *parameter) {
+void __attribute__((weak)) taskInputHandler(void* parameter) {
     auto timer = millis();
     while (true) {
         checkPowerSaveTime();
@@ -98,7 +99,7 @@ bool isScreenOff = false;
 bool dimmer = false;
 char timeStr[10];
 time_t localTime;
-struct tm *timeInfo;
+struct tm* timeInfo;
 #if defined(HAS_RTC)
 cplus_RTC _rtc;
 RTC_TimeTypeDef _time;
@@ -118,14 +119,14 @@ TFT_eSprite draw = TFT_eSprite(&tft);
 volatile int tftWidth = TFT_HEIGHT;
 #ifdef HAS_TOUCH
 volatile int tftHeight =
-    TFT_WIDTH - 20; // 20px to draw the TouchFooter(), were the btns are being read in touch devices.
+TFT_WIDTH - 20; // 20px to draw the TouchFooter(), were the btns are being read in touch devices.
 #else
 volatile int tftHeight = TFT_WIDTH;
 #endif
 #else
 tft_logger tft;
-SerialDisplayClass &sprite = tft;
-SerialDisplayClass &draw = tft;
+SerialDisplayClass& sprite = tft;
+SerialDisplayClass& draw = tft;
 volatile int tftWidth = VECTOR_DISPLAY_DEFAULT_HEIGHT;
 volatile int tftHeight = VECTOR_DISPLAY_DEFAULT_WIDTH;
 #endif
@@ -138,7 +139,7 @@ volatile int tftHeight = VECTOR_DISPLAY_DEFAULT_WIDTH;
 #include "core/settings.h"
 #include "core/wifi/wifi_common.h"
 #include "modules/bjs_interpreter/interpreter.h" // for JavaScript interpreter
-#include "modules/others/audio.h"                // for playAudioFile
+// #include "modules/others/audio.h"                // for playAudioFile
 #include "modules/rf/rf_utils.h"                 // for initCC1101once
 #include <Wire.h>
 
@@ -185,9 +186,9 @@ void setup_gpio() {
     else
 #endif
         if (bruceConfigPins.CC1101_bus.mosi == bruceConfigPins.SDCARD_bus.mosi)
-        initCC1101once(&sdcardSPI); // (ARDUINO_M5STACK_CARDPUTER) and (ESP32S3DEVKITC1) and devices that
-                                    // share CC1101 pin with only SDCard
-    else initCC1101once(NULL);
+            initCC1101once(&sdcardSPI); // (ARDUINO_M5STACK_CARDPUTER) and (ESP32S3DEVKITC1) and devices that
+    // share CC1101 pin with only SDCard
+        else initCC1101once(NULL);
     // (ARDUINO_M5STICK_C_PLUS) || (ARDUINO_M5STICK_C_PLUS2) and others that doesn´t share SPI with
     // other devices (need to change it when Bruce board comes to shore)
 }
@@ -246,7 +247,7 @@ void boot_screen_anim() {
     if (bruceConfig.theme.boot_img) boot_img = 5; // override others
 
     tft.drawPixel(0, 0, 0);       // Forces back communication with TFT, to avoid ghosting
-                                  // Start image loop
+    // Start image loop
     while (millis() < i + 7000) { // boot image lasts for 5 secs
         if ((millis() - i > 2000) && !drawn) {
             tft.fillRect(0, 45, tftWidth, tftHeight - 45, bruceConfig.bgColor);
@@ -262,16 +263,20 @@ void boot_screen_anim() {
                         3600
                     );
                     Serial.println("Image from SD theme");
-                } else if (boot_img == 1) {
+                }
+                else if (boot_img == 1) {
                     drawImg(SD, "/boot.jpg", 0, 0, true);
                     Serial.println("Image from SD");
-                } else if (boot_img == 2) {
+                }
+                else if (boot_img == 2) {
                     drawImg(LittleFS, "/boot.jpg", 0, 0, true);
                     Serial.println("Image from LittleFS");
-                } else if (boot_img == 3) {
+                }
+                else if (boot_img == 3) {
                     drawImg(SD, "/boot.gif", 0, 0, true, 3600);
                     Serial.println("Image from SD");
-                } else if (boot_img == 4) {
+                }
+                else if (boot_img == 4) {
                     drawImg(LittleFS, "/boot.gif", 0, 0, true, 3600);
                     Serial.println("Image from LittleFS");
                 }
@@ -354,15 +359,17 @@ void startup_sound() {
     delay(200);
     _tone(5000, 50);
     /*  2fix: menu infinite loop */
-#elif defined(HAS_NS4168_SPKR)
-    // play a boot sound
-    if (bruceConfig.theme.boot_sound) {
-        playAudioFile(bruceConfig.themeFS(), bruceConfig.getThemeItemImg(bruceConfig.theme.paths.boot_sound));
-    } else if (SD.exists("/boot.wav")) {
-        playAudioFile(&SD, "/boot.wav");
-    } else if (LittleFS.exists("/boot.wav")) {
-        playAudioFile(&LittleFS, "/boot.wav");
-    }
+// #elif defined(HAS_NS4168_SPKR)
+//     // play a boot sound
+//     if (bruceConfig.theme.boot_sound) {
+//         playAudioFile(bruceConfig.themeFS(), bruceConfig.getThemeItemImg(bruceConfig.theme.paths.boot_sound));
+//     }
+//     else if (SD.exists("/boot.wav")) {
+//         playAudioFile(&SD, "/boot.wav");
+//     }
+//     else if (LittleFS.exists("/boot.wav")) {
+//         playAudioFile(&LittleFS, "/boot.wav");
+//     }
 #endif
 #endif
 }
@@ -482,7 +489,7 @@ void loop() {
 }
 #else
 
-// alternative loop function for headless boards
+ // alternative loop function for headless boards
 #include "core/wifi/webInterface.h"
 
 void loop() {

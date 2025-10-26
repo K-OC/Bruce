@@ -9,7 +9,7 @@
 #include "timer.h"
 #include "core/display.h"
 #include "core/utils.h"
-#include "modules/others/audio.h"
+ // #include "modules/others/audio.h"
 
 #define DELAY_VALUE 150
 
@@ -48,9 +48,11 @@ void Timer::setup() {
         if (check(NextPress)) {
             if (settingMode == 0 && ++hours > 99) {
                 hours = 0;
-            } else if (settingMode == 1 && ++minutes >= 60) {
+            }
+            else if (settingMode == 1 && ++minutes >= 60) {
                 minutes = 0;
-            } else if (settingMode == 2 && ++seconds >= 60) {
+            }
+            else if (settingMode == 2 && ++seconds >= 60) {
                 seconds = 0;
             }
         }
@@ -58,9 +60,11 @@ void Timer::setup() {
         if (check(PrevPress)) {
             if (settingMode == 0 && --hours < 0) {
                 hours = 99;
-            } else if (settingMode == 1 && --minutes < 0) {
+            }
+            else if (settingMode == 1 && --minutes < 0) {
                 minutes = 59;
-            } else if (settingMode == 2 && --seconds < 0) {
+            }
+            else if (settingMode == 2 && --seconds < 0) {
                 seconds = 59;
             }
         }
@@ -114,7 +118,7 @@ void Timer::loop() {
         if (check(EscPress)) { break; }
 
         if (elapsedMillis >= duration) {
-            _tone(2000, 1000);
+            // _tone(2000, 1000);
             break;
         }
     }

@@ -1,6 +1,6 @@
 #include "rf_listen.h"
 
-#include "../others/audio.h"
+// #include "../others/audio.h"
 
 volatile unsigned long lastMicros = 0;
 volatile unsigned long pulseMicros = 0;
@@ -17,7 +17,8 @@ void IRAM_ATTR onPulse() {
         ___frequency = 1000000.0 / pulseDuration;
         newPulse = true;
         wasHigh = true;
-    } else if (wasHigh) {
+    }
+    else if (wasHigh) {
         lastMicros = now;
         wasHigh = false;
     }
@@ -35,7 +36,8 @@ void rf_listen() {
         if (freq != last_freq) {
             redraw = true;
             last_freq = freq;
-        } else {
+        }
+        else {
             redraw = false;
         }
 
@@ -81,7 +83,7 @@ void rf_listen() {
 #if defined(BUZZ_PIN)
             tone(BUZZ_PIN, ___frequency, pulseDuration);
 #elif defined(HAS_NS4168_SPKR)
-            playTone(___frequency, pulseDuration, 0);
+            // playTone(___frequency, pulseDuration, 0);
 #endif
         }
 
