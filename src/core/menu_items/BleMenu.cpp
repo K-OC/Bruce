@@ -11,32 +11,36 @@
 void BleMenu::optionsMenu() {
     options.clear();
     if (BLEConnected) {
-        options.push_back({"Disconnect", [=]() {
+        options.push_back({ "Disconnect", [=]() {
                                BLEDevice::deinit();
                                BLEConnected = false;
                                delete hid_ble;
                                hid_ble = nullptr;
                                if (_Ask_for_restart == 1)
                                    _Ask_for_restart = 2; // Sets the variable to ask for restart;
-                           }});
+                           } });
     }
 
-    options.push_back({"Media Cmds", [=]() { MediaCommands(hid_ble, true); }});
+    options.push_back({ "Media Cmds", [=]() { MediaCommands(hid_ble, true); } });
 #if !defined(LITE_VERSION)
-    options.push_back({"BLE Scan", ble_scan});
-    options.push_back({"Tesla Scanner", [=]() { BLETesla teslaScanner; }});
-    options.push_back({"iBeacon", [=]() { ibeacon(); }});
-    options.push_back({"Bad BLE", [=]() { ducky_setup(hid_ble, true); }});
+    options.push_back({ "BLE Scan", ble_scan });
+    options.push_back({ "Tesla Scanner", [=]() {
+        BLETesla scanner;
+        scanner.setup();
+        scanner.loop();
+    } });
+    options.push_back({ "iBeacon", [=]() { ibeacon(); } });
+    options.push_back({ "Bad BLE", [=]() { ducky_setup(hid_ble, true); } });
 #endif
-    options.push_back({"BLE Keyboard", [=]() { ducky_keyboard(hid_ble, true); }});
-    options.push_back({"Applejuice", lambdaHelper(aj_adv, 0)});
-    options.push_back({"SourApple", lambdaHelper(aj_adv, 1)});
-    options.push_back({"Windows Spam", lambdaHelper(aj_adv, 2)});
-    options.push_back({"Samsung Spam", lambdaHelper(aj_adv, 3)});
-    options.push_back({"Android Spam", lambdaHelper(aj_adv, 4)});
-    options.push_back({"Spam All", lambdaHelper(aj_adv, 5)});
-    options.push_back({"Spam Custom", lambdaHelper(aj_adv, 6)});
-    options.push_back({"Ninebot", [=]() { BLENinebot(); }});
+    options.push_back({ "BLE Keyboard", [=]() { ducky_keyboard(hid_ble, true); } });
+    options.push_back({ "Applejuice", lambdaHelper(aj_adv, 0) });
+    options.push_back({ "SourApple", lambdaHelper(aj_adv, 1) });
+    options.push_back({ "Windows Spam", lambdaHelper(aj_adv, 2) });
+    options.push_back({ "Samsung Spam", lambdaHelper(aj_adv, 3) });
+    options.push_back({ "Android Spam", lambdaHelper(aj_adv, 4) });
+    options.push_back({ "Spam All", lambdaHelper(aj_adv, 5) });
+    options.push_back({ "Spam Custom", lambdaHelper(aj_adv, 6) });
+    options.push_back({ "Ninebot", [=]() { BLENinebot(); } });
     addOptionToMainMenu();
 
     loopOptions(options, MENU_TYPE_SUBMENU, "Bluetooth");

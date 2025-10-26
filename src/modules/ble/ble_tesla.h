@@ -9,11 +9,15 @@
 #include <globals.h>
 #include "core/display.h"
 
+struct TeslaInfo {
+    String address;
+    int rssi;
+    unsigned long lastSeen;
+    String name;
+};
+
 class BLETesla {
 public:
-    BLETesla();
-    ~BLETesla();
-
     void setup();
     void loop();
 

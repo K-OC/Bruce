@@ -1,29 +1,28 @@
+/*
+    Tesla BLE Scanner for Bruce
+    Based on Esp32vsEvil's TeslaScanner: https://github.com/Esp32vsEvil/TeslaScanner
+    Modified by dudgy
+
+    Note: This is experimental software for educational purposes.
+    Detection may not work reliably and results are not guaranteed.
+*/
+
 #include "ble_tesla.h"
 #include "core/mykeyboard.h"
 #include "core/utils.h"
-#include <functional>
+#include <map>
 #include <vector>
 
-#define SCAN_TIME 5
 #define SCAN_INTERVAL 100
 #define SCAN_WINDOW 99
+#define RSSI_TIMEOUT 5000
 
 static NimBLEScan* pBLEScan;
 static bool teslaScanning = false;
 static bool scanCancelled = false;
 
-void displayTeslaInfo(String name, String address, int rssi) {
-    ::drawMainBorder();
-    tft.setTextColor(bruceConfig.priColor);
-    tft.drawCentreString("-=Tesla Found=-", tftWidth / 2, 28, SMOOTH_FONT);
-    tft.drawString("Name: " + name, 10, 48);
-    tft.drawString("Address: " + address, 10, 66);
-    tft.drawString("Signal: " + String(rssi) + " dBm", 10, 84);
-    tft.drawCentreString("Press " + String(BTN_ALIAS) + " to continue", tftWidth / 2, tftHeight - 20, 1);
-
-    delay(300);
-    while (!check(SelPress)) { delay(50); }
-}
+// DECLARE the global variable as EXTERN in header and define here
+std::map<String, TeslaInfo> activeTeslas;
 
 class TeslaAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
     void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
@@ -39,23 +38,56 @@ class TeslaAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
                 String address = advertisedDevice->getAddress().toString().c_str();
                 int rssi = advertisedDevice->getRSSI();
 
-                // Use the static method
-                options.emplace_back(deviceName.c_str(), [=]() {
-                    displayTeslaInfo(deviceName, address, rssi);
-                    });
+                // Update or add to active Teslas
+                activeTeslas[address] = { address, rssi, millis(), deviceName };
             }
         }
     }
 };
-BLETesla::BLETesla() { setup(); }
 
-BLETesla::~BLETesla() {
-    if (teslaScanning) {
-        scanCancelled = true;
-        pBLEScan->stop();
-        teslaScanning = false;
+void BLETesla::drawMainBorder() {
+    ::drawMainBorder(); // Use global function
+    tft.drawString("-=Tesla Scanner=-", (tftWidth / 2) - ((16 * 6) / 2), 12);
+}
+
+void updateTeslaDisplay() {
+    static unsigned long lastUpdate = 0;
+    static size_t lastTeslaCount = 0;
+
+    // Only update if enough time has passed OR Tesla count changed
+    if (millis() - lastUpdate < 1000 && activeTeslas.size() == lastTeslaCount) {
+        return;
     }
-    pBLEScan->clearResults();
+
+    lastUpdate = millis();
+    lastTeslaCount = activeTeslas.size();
+
+    // Clear only the content area (not the borders)
+    tft.fillRect(10, 35, tftWidth - 20, tftHeight - 50, bruceConfig.bgColor);
+
+    // Display active Teslas with signal strength
+    int yPos = 35;
+    for (const auto& tesla : activeTeslas) {
+        String displayText = tesla.second.name + " " + String(tesla.second.rssi) + "dBm";
+
+        // Visual signal strength indicator
+        int signalBars = map(constrain(tesla.second.rssi, -100, -50), -100, -50, 1, 5);
+        String strength = " [";
+        for (int i = 0; i < signalBars; i++) strength += "|";
+        for (int i = signalBars; i < 5; i++) strength += " ";
+        strength += "]";
+
+        tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+        tft.drawString(displayText + strength, 10, yPos);
+        yPos += 15;
+
+        if (yPos > tftHeight - 20) break;
+    }
+
+    if (activeTeslas.empty()) {
+        tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
+        tft.drawString("No Teslas in range", 10, 35);
+    }
 }
 
 void BLETesla::setup() {
@@ -64,70 +96,45 @@ void BLETesla::setup() {
 
     NimBLEDevice::init("");
     pBLEScan = NimBLEDevice::getScan();
+    pBLEScan->setAdvertisedDeviceCallbacks(new TeslaAdvertisedDeviceCallbacks());
     pBLEScan->setActiveScan(true);
     pBLEScan->setInterval(SCAN_INTERVAL);
     pBLEScan->setWindow(SCAN_WINDOW);
-
-    delay(100);
-    loop();
 }
 
-void BLETesla::drawMainBorder() {
-    ::drawMainBorder(); // Use global function
-    tft.drawString("-=Tesla Scanner=-", (tftWidth / 2) - ((16 * 6) / 2), 12);
+void cleanupOldTeslas() {
+    unsigned long currentTime = millis();
+    for (auto it = activeTeslas.begin(); it != activeTeslas.end(); ) {
+        if (currentTime - it->second.lastSeen > RSSI_TIMEOUT) {
+            it = activeTeslas.erase(it);  // ← Properly remove old entries
+        }
+        else {
+            ++it;
+        }
+    }
 }
 
 void BLETesla::loop() {
+    drawMainBorder();
+    displayTextLine("Tesla Radar Starting...");
+    delay(1000);
+
     while (!check(EscPress)) {
-        scanCancelled = false;
-        options.clear();
+        // Do a quick BLE scan
+        pBLEScan->start(1, false);
 
-        drawMainBorder();
-        displayTextLine("Scanning for Teslas...");
-        displayTextLine("Press ESC to cancel", 2);
+        // Update display (function now handles timing internally)
+        updateTeslaDisplay();
 
-        // Setup callback for Tesla detection
-        pBLEScan->setAdvertisedDeviceCallbacks(new TeslaAdvertisedDeviceCallbacks(), true);
-
-        // Start scan and check for ESC periodically
-        teslaScanning = true;
-        pBLEScan->start(0, true); // Start scanning indefinitely (we'll manage the timing)
-
-        unsigned long startTime = millis();
-        while ((millis() - startTime) < (SCAN_TIME * 1000) && !scanCancelled) {
-            if (check(EscPress)) {
-                scanCancelled = true;
-                break;
-            }
-            delay(100); // Check for ESC every 100ms
-        }
-
-        // Stop scanning
-        pBLEScan->stop();
-        teslaScanning = false;
-
-        if (scanCancelled) {
-            displayTextLine("Scan cancelled");
-            delay(1000);
-            return;
-        }
-
-        if (options.empty()) {
-            displayTextLine("No Teslas found. Retry...");
-            delay(2000);
-            pBLEScan->clearResults();
-            continue;
-        }
-
-        // Add navigation options
-        options.push_back({ "Scan Again", [&]() {} });
-        options.push_back({ "Main Menu", [&]() { returnToMenu = true; } });
-
-        bool returnToMenu = false;
-        loopOptions(options);
-
-        if (returnToMenu) return;
-
-        pBLEScan->clearResults();
+        delay(100);
     }
+
+    // Cleanup
+    displayTextLine("Exiting...");
+    delay(500);
+
+    pBLEScan->stop();
+    pBLEScan->clearResults();
+    NimBLEDevice::deinit(true);
+    activeTeslas.clear();
 }
