@@ -21,7 +21,6 @@ static NimBLEScan* pBLEScan;
 static bool teslaScanning = false;
 static bool scanCancelled = false;
 
-// DECLARE the global variable as EXTERN in header and define here
 std::map<String, TeslaInfo> activeTeslas;
 
 class TeslaAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
@@ -31,7 +30,11 @@ class TeslaAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
         if (advertisedDevice->haveName()) {
             String deviceName = String(advertisedDevice->getName().c_str());
 
-            // Tesla detection logic
+            /*
+            Detect Tesla devices by name pattern assumes:
+            - Model S: Names starting with 'S' and 18 characters long ending with 'C'
+            - Other Models: Names starting with 'Tesla'
+            */
             if ((deviceName.length() >= 18 && deviceName.charAt(0) == 'S' && deviceName.charAt(17) == 'C') ||
                 deviceName.startsWith("Tesla")) {
 
@@ -62,7 +65,7 @@ void updateTeslaDisplay() {
     lastUpdate = millis();
     lastTeslaCount = activeTeslas.size();
 
-    // Clear only the content area (not the borders)
+    // Clear the content area
     tft.fillRect(10, 35, tftWidth - 20, tftHeight - 50, bruceConfig.bgColor);
 
     // Display active Teslas with signal strength
@@ -120,10 +123,10 @@ void BLETesla::loop() {
     delay(1000);
 
     while (!check(EscPress)) {
-        // Do a quick BLE scan
+        // BLE scan
         pBLEScan->start(1, false);
 
-        // Update display (function now handles timing internally)
+        // Update display
         updateTeslaDisplay();
 
         delay(100);
